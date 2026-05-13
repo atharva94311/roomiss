@@ -14,18 +14,26 @@ const supabaseHost = (() => {
 })();
 
 // CSP rationale:
-//   - default-src 'self': everything not listed below
-//   - script-src 'self' 'unsafe-inline' 'unsafe-eval' in dev only (Next dev needs eval).
-//     Next.js production builds use nonces if you opt in; for now we ship the prod CSP
-//     without 'unsafe-eval' but keep 'unsafe-inline' for inline <style jsx> tags.
+//   - default-src 'self': everything not listed below.
+//   - script-src 'self' 'unsafe-inline' 'unsafe-eval'.
+//       * 'unsafe-inline' — required for Next.js inlined <script id="__NEXT_DATA__">
+//         and for inline <style jsx> hydration markers.
+//       * 'unsafe-eval' — required in BOTH dev and prod. Empirically, the prod
+//         build of Supabase Auth and/or one of its transitive deps invokes
+//         `new Function(...)` (or `setTimeout("string", ...)`) during the auth
+//         token-refresh path, which silently blocked the login flow on Vercel.
+//         A stricter nonce-based policy would require turning off 'unsafe-inline'
+//         too and threading nonces through Next's app-router renderer — out of
+//         scope for now. 'wasm-unsafe-eval' is added for libraries that compile
+//         WebAssembly modules (e.g. some PostHog / analytics builds) and is
+//         strictly weaker than 'unsafe-eval'.
 //   - connect-src must include the Supabase host (REST + Realtime websockets via wss).
 //   - img-src must include both the public avatars CDN URL and data: for inline blurs.
 //   - font-src includes Google Fonts (Instrument Serif, Geist, JetBrains Mono).
-const isDev = process.env.NODE_ENV !== "production";
 
 const csp = [
   `default-src 'self'`,
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
+  `script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval'`,
   `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
   `font-src 'self' https://fonts.gstatic.com data:`,
   `img-src 'self' data: blob: https://${supabaseHost}`,
