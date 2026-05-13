@@ -161,9 +161,19 @@ export function SwipeDeck({
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      {/* Card stack */}
+      {/* Card stack.
+       *
+       * NOTE: the inner positioned wrapper used to be `relative w-full h-full`
+       * but `h-full` (height: 100%) does not resolve inside a flex item whose
+       * own height comes from `flex: 1 1 auto` — the parent has no explicit
+       * pixel height for the percentage to resolve against, so the wrapper
+       * collapses to 0 and the absolutely-positioned cards collapse with it.
+       * Making the outer container a flex column and the inner a flex item
+       * with `flex: 1 1 auto; min-height: 0` gives the wrapper a real,
+       * positioned context that the cards can anchor against.
+       */}
       <div
-        className="relative mx-auto w-full"
+        className="relative mx-auto w-full flex flex-col"
         style={{
           flex: "1 1 auto",
           minHeight: 0,
@@ -171,7 +181,7 @@ export function SwipeDeck({
           padding: "8px 16px 0",
         }}
       >
-        <div className="relative w-full h-full">
+        <div className="relative w-full" style={{ flex: "1 1 auto", minHeight: 0 }}>
           {/* Depth cards (static, behind top) */}
           {queue
             .slice(1)
