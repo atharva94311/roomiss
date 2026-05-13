@@ -1,0 +1,142 @@
+@import "tailwindcss";
+
+@theme {
+  --font-serif: "Instrument Serif", "Iowan Old Style", Georgia, serif;
+  --font-sans: "Geist", ui-sans-serif, -apple-system, system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "SF Mono", monospace;
+
+  --color-bg: #f7f2e9;
+  --color-surface: #ffffff;
+  --color-surface-2: #fbf6ec;
+  --color-ink: #1b1a17;
+  --color-ink-2: #4a453c;
+  --color-ink-3: #6b6657;    /* AA: 5.2:1 on white, 4.9:1 on cream */
+  --color-hairline: rgba(27, 26, 23, 0.08);
+  --color-hairline-2: rgba(27, 26, 23, 0.14);
+
+  --color-lbs: #c46a48;
+  --color-lbs-soft: #f5e4d8;
+  --color-lbs-ink: #7a3920;
+
+  --color-snvh: #bd5c68;
+  --color-snvh-soft: #f5dedf;
+  --color-snvh-ink: #722f39;
+
+  --color-good: #5c7a3f;
+  --color-good-soft: #e1ebd3;
+  --color-warn: #c99843;
+  --color-warn-soft: #f8ebc8;
+  --color-bad: #9b4029;
+  --color-bad-soft: #f4dcd2;
+}
+
+@layer base {
+  html,
+  body {
+    background: var(--color-bg);
+    color: var(--color-ink);
+    -webkit-font-smoothing: antialiased;
+    font-family: var(--font-sans);
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  ::selection {
+    background: var(--color-lbs);
+    color: white;
+  }
+
+  /* Hide scrollbars on horizontal filter rows etc. */
+  .scroll-row::-webkit-scrollbar {
+    display: none;
+  }
+  .scroll-row {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Accessibility: visible keyboard focus on every interactive element. Mouse
+   * users get no ring (`:focus` alone wouldn't differentiate). The 2px ring
+   * uses the brand ink so it reads on cream and surface backgrounds. */
+  :focus { outline: none; }
+  :focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  /* Slightly tighter ring on chip-shaped pills + rounded buttons */
+  button:focus-visible,
+  [role="button"]:focus-visible,
+  a:focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 2px;
+  }
+  /* Skip-link target — Tab from address bar lands here first. */
+  .skip-link {
+    position: absolute;
+    left: -1000px;
+    top: 0;
+    background: var(--color-ink);
+    color: var(--color-bg);
+    padding: 8px 14px;
+    border-radius: 0 0 8px 0;
+    z-index: 9999;
+    font-size: 13px;
+  }
+  .skip-link:focus {
+    left: 0;
+  }
+}
+
+@layer utilities {
+  .font-serif {
+    font-family: var(--font-serif);
+  }
+  .font-sans {
+    font-family: var(--font-sans);
+  }
+  .font-mono {
+    font-family: var(--font-mono);
+  }
+
+  .textured {
+    background-image: repeating-linear-gradient(
+      135deg,
+      transparent 0 14px,
+      rgba(27, 26, 23, 0.04) 14px 15px
+    );
+  }
+
+  .ring-hairline {
+    box-shadow: 0 0 0 1px var(--color-hairline);
+  }
+  .ring-hairline-2 {
+    box-shadow: 0 0 0 1px var(--color-hairline-2);
+  }
+}
+
+/* Light fade-in for route transitions */
+@keyframes fadeup {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.fade-up {
+  animation: fadeup 0.3s ease both;
+}
+
+/* Pulse for typing dots */
+@keyframes pulse-dot {
+  0%, 80%, 100% { opacity: 0.3; }
+  40% { opacity: 1; }
+}
+.dot-1 { animation: pulse-dot 1.2s infinite; }
+.dot-2 { animation: pulse-dot 1.2s infinite 0.15s; }
+.dot-3 { animation: pulse-dot 1.2s infinite 0.3s; }
