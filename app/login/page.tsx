@@ -18,6 +18,9 @@ export default function LoginPage() {
   const loginAsGuestAdmin = useRoomiss((s) => s.loginAsGuestAdmin);
   const loginAsSeedUser = useRoomiss((s) => s.loginAsSeedUser);
   const [showSwitcher, setShowSwitcher] = useState(false);
+  // `pending` holds the identifier of the button mid-request: "user", "admin",
+  // or the seed user's email. Other buttons stay clickable.
+  const [pending, setPending] = useState<string | null>(null);
 
   // Pre-baked demo accounts (so the picker works pre-auth, before hydrate).
   const seedDirectory: Array<{ email: string; name: string; hall: "LBS" | "SNVH"; branch: string }> = [
@@ -32,14 +35,20 @@ export default function LoginPage() {
   ];
 
   const onUser = async () => {
+    if (pending) return;
+    setPending("user");
     const r = await loginAsGuestUser();
+    setPending(null);
     if (r.ok) router.push("/browse");
-    else alert(`Sign-in failed: ${r.error ?? "unknown"}`);
+    else useRoomiss.setState({ lastError: r.error ?? "Sign-in failed" });
   };
   const onAdmin = async () => {
+    if (pending) return;
+    setPending("admin");
     const r = await loginAsGuestAdmin();
+    setPending(null);
     if (r.ok) router.push("/admin");
-    else alert(`Sign-in failed: ${r.error ?? "unknown"}`);
+    else useRoomiss.setState({ lastError: r.error ?? "Sign-in failed" });
   };
 
   return (
@@ -66,12 +75,16 @@ export default function LoginPage() {
 
         <div className="mt-7 flex flex-col gap-3">
           <button
+            type="button"
             onClick={onUser}
+            disabled={pending !== null}
             className="text-left p-4 rounded-2xl flex items-center gap-3.5"
             style={{
               background: RM.surface,
               border: `1.5px solid ${RM.lbs}`,
               boxShadow: `0 6px 24px ${RM.lbs}22`,
+              opacity: pending && pending !== "user" ? 0.5 : 1,
+              cursor: pending ? "not-allowed" : "pointer",
             }}
           >
             <div
@@ -88,7 +101,7 @@ export default function LoginPage() {
             </div>
             <div className="flex-1">
               <div className="font-serif" style={{ fontSize: 18, letterSpacing: -0.3 }}>
-                Continue as fresher
+                {pending === "user" ? "Signing in…" : "Continue as fresher"}
               </div>
               <div style={{ fontSize: 12.5, color: RM.ink2, marginTop: 2 }}>
                 Sign in as Aarav (LBS, verified). 2 incoming requests waiting.
@@ -98,12 +111,16 @@ export default function LoginPage() {
           </button>
 
           <button
+            type="button"
             onClick={onAdmin}
+            disabled={pending !== null}
             className="text-left p-4 rounded-2xl flex items-center gap-3.5"
             style={{
               background: RM.surface,
               border: `1.5px solid ${RM.ink}`,
               boxShadow: "0 6px 24px rgba(27,26,23,0.18)",
+              opacity: pending && pending !== "admin" ? 0.5 : 1,
+              cursor: pending ? "not-allowed" : "pointer",
             }}
           >
             <div
@@ -120,7 +137,7 @@ export default function LoginPage() {
             </div>
             <div className="flex-1">
               <div className="font-serif" style={{ fontSize: 18, letterSpacing: -0.3 }}>
-                Continue as admin
+                {pending === "admin" ? "Signing in…" : "Continue as admin"}
               </div>
               <div style={{ fontSize: 12.5, color: RM.ink2, marginTop: 2 }}>
                 Warden console. Verifications, reports, audit log.
@@ -146,15 +163,22 @@ export default function LoginPage() {
                 return (
                   <button
                     key={u.email}
+                    type="button"
                     onClick={async () => {
+                      if (pending) return;
+                      setPending(u.email);
                       const r = await loginAsSeedUser(u.email);
+                      setPending(null);
                       if (r.ok) router.push("/browse");
-                      else alert(`Sign-in failed: ${r.error ?? "unknown"}`);
+                      else useRoomiss.setState({ lastError: r.error ?? "Sign-in failed" });
                     }}
+                    disabled={pending !== null}
                     className="text-left p-3 rounded-xl flex items-center gap-2.5"
                     style={{
                       background: RM.surface,
                       border: `1px solid ${RM.hairline2}`,
+                      opacity: pending && pending !== u.email ? 0.5 : 1,
+                      cursor: pending ? "not-allowed" : "pointer",
                     }}
                   >
                     <Avatar name={u.name} hall={u.hall} size={32} />

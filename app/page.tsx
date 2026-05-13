@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Wordmark } from "@/components/ui/Wordmark";
@@ -13,15 +14,25 @@ export default function Landing() {
   const router = useRouter();
   const loginAsGuestUser = useRoomiss((s) => s.loginAsGuestUser);
   const loginAsGuestAdmin = useRoomiss((s) => s.loginAsGuestAdmin);
+  // `pending` is per-button so the OTHER button stays interactive while one
+  // is mid-request. Surfaced as button-disabled + label swap.
+  const [pending, setPending] = useState<null | "user" | "admin">(null);
+
   const onUser = async () => {
+    if (pending) return;
+    setPending("user");
     const r = await loginAsGuestUser();
+    setPending(null);
     if (r.ok) router.push("/browse");
-    else alert(`Sign-in failed: ${r.error ?? "unknown"}`);
+    else useRoomiss.setState({ lastError: r.error ?? "Sign-in failed" });
   };
   const onAdmin = async () => {
+    if (pending) return;
+    setPending("admin");
     const r = await loginAsGuestAdmin();
+    setPending(null);
     if (r.ok) router.push("/admin");
-    else alert(`Sign-in failed: ${r.error ?? "unknown"}`);
+    else useRoomiss.setState({ lastError: r.error ?? "Sign-in failed" });
   };
   return (
     <MobileShell dark>
@@ -136,19 +147,21 @@ export default function Landing() {
           variant="primary"
           size="lg"
           full
-          style={{ background: "#F7F2E9", color: RM.ink }}
+          style={{ background: "#F7F2E9", color: RM.ink, opacity: pending === "user" ? 0.7 : 1 }}
           onClick={onUser}
+          disabled={pending !== null}
         >
-          Continue as fresher &nbsp;{I.arrow}
+          {pending === "user" ? "Signing in…" : <>Continue as fresher &nbsp;{I.arrow}</>}
         </Button>
         <Button
           variant="secondary"
           size="lg"
           full
-          style={{ borderColor: "rgba(247,242,233,0.4)", color: "#F7F2E9" }}
+          style={{ borderColor: "rgba(247,242,233,0.4)", color: "#F7F2E9", opacity: pending === "admin" ? 0.7 : 1 }}
           onClick={onAdmin}
+          disabled={pending !== null}
         >
-          Continue as admin
+          {pending === "admin" ? "Signing in…" : "Continue as admin"}
         </Button>
         <div className="text-center mt-2" style={{ fontSize: 12, color: "rgba(247,242,233,0.5)", lineHeight: 1.5 }}>
           The real product onboards via slip review by an admin — no passwords.

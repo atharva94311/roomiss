@@ -12,6 +12,7 @@ import { AcceptanceGrid, ExpiryChip } from "@/components/requests/AcceptanceGrid
 import { useRoomiss, selectMyHall, selectMyProfile } from "@/lib/store";
 import { compatScore } from "@/lib/compat";
 import { RM, hallTheme } from "@/lib/tokens";
+import { fmtAgo, cmpIsoDesc } from "@/lib/format";
 import type { RoomRequest } from "@/lib/types";
 
 type Tab = "incoming" | "outgoing" | "history";
@@ -52,7 +53,7 @@ export default function RequestsPage() {
     );
     const history = all
       .filter((r) => r.status !== "pending")
-      .sort((a, b) => (b.resolvedAt ?? b.createdAt).localeCompare(a.resolvedAt ?? a.createdAt));
+      .sort((a, b) => cmpIsoDesc(a.resolvedAt ?? a.createdAt, b.resolvedAt ?? b.createdAt));
     return { all, incoming, outgoing, history };
   }, [requests, meId]);
 
@@ -317,12 +318,3 @@ export default function RequestsPage() {
   );
 }
 
-function fmtAgo(iso: string) {
-  const ms = Date.now() - new Date(iso).getTime();
-  const m = Math.round(ms / 60000);
-  if (m < 60) return `${m}m`;
-  const h = Math.round(m / 60);
-  if (h < 24) return `${h}h`;
-  const d = Math.round(h / 24);
-  return `${d}d`;
-}

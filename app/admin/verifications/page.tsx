@@ -7,6 +7,7 @@ import { HallPill, StatusPill } from "@/components/ui/Pills";
 import { useRoomiss } from "@/lib/store";
 import { signedSlipUrl } from "@/lib/supabase/upload";
 import { RM, hallTheme } from "@/lib/tokens";
+import { fmtAgo } from "@/lib/format";
 import type { Hall } from "@/lib/types";
 
 const REJECT_CATS = [
@@ -579,12 +580,3 @@ export default function AdminVerifyPage() {
   );
 }
 
-function fmtAgo(iso: string) {
-  const ms = Date.now() - new Date(iso).getTime();
-  const m = Math.round(ms / 60000);
-  if (m < 60) return `${m}m`;
-  const h = Math.round(m / 60);
-  if (h < 24) return `${h}h`;
-  const d = Math.round(h / 24);
-  return `${d}d`;
-}

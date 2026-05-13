@@ -15,6 +15,7 @@ import { SoloCardSkeleton } from "@/components/ui/Skeleton";
 import type { SwipeItem } from "@/components/swipe/SwipeCard";
 import { useRoomiss, selectMyHall, selectMyProfile } from "@/lib/store";
 import { compatScore, avgCompatVsGroup, compatMany } from "@/lib/compat";
+import { cmpIsoDesc } from "@/lib/format";
 import { RM } from "@/lib/tokens";
 import type { FoodPref, Hall, Profile, SleepSchedule, AcPref, SwipeDecision } from "@/lib/types";
 import { useRouter } from "next/navigation";
@@ -146,11 +147,11 @@ export default function BrowsePage() {
     });
     if (filters.sort === "active") {
       list.sort((a, b) =>
-        allUsers[b.profile.userId].lastActiveAt.localeCompare(allUsers[a.profile.userId].lastActiveAt),
+        cmpIsoDesc(allUsers[a.profile.userId]?.lastActiveAt, allUsers[b.profile.userId]?.lastActiveAt),
       );
     } else if (filters.sort === "newest") {
       list.sort((a, b) =>
-        allUsers[b.profile.userId].createdAt.localeCompare(allUsers[a.profile.userId].createdAt),
+        cmpIsoDesc(allUsers[a.profile.userId]?.createdAt, allUsers[b.profile.userId]?.createdAt),
       );
     } else {
       list.sort((a, b) => b.score - a.score);
@@ -409,7 +410,7 @@ export default function BrowsePage() {
         >
           Newest
         </Chip>
-        <span style={{ color: RM.hairline2, alignSelf: "center" }}>|</span>
+        <span style={{ color: RM.hairline2, alignSelf: "center", flexShrink: 0 }}>|</span>
         <Chip on={!!filters.sleep} onClick={() => setDrawerOpen(true)}>
           Sleep{filters.sleep ? `: ${filters.sleep}` : ""}
         </Chip>
@@ -439,6 +440,7 @@ export default function BrowsePage() {
               color: RM.ink3,
               border: `1px dashed ${RM.hairline2}`,
               whiteSpace: "nowrap",
+              flexShrink: 0,
               cursor: "pointer",
             }}
           >
@@ -519,6 +521,10 @@ function Chip({ children, on, onClick }: { children: React.ReactNode; on?: boole
         color: on ? RM.bg : RM.ink2,
         border: on ? "1px solid transparent" : `1px solid ${RM.hairline}`,
         whiteSpace: "nowrap",
+        // flexShrink: 0 keeps chips at their content width inside the scroll-row.
+        // Without this the default `flex-shrink: 1` crushes them into each other
+        // when the row overflows the 480px shell, producing visual overlap.
+        flexShrink: 0,
         cursor: "pointer",
       }}
     >

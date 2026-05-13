@@ -17,9 +17,13 @@ export default function SignupPage() {
   const [confirm, setConfirm] = useState("");
   const [consent, setConsent] = useState(false);
   const [error, setError] = useState("");
+  // Pending state so the user sees the click registered — previously the
+  // Continue button looked unresponsive during the network round-trip.
+  const [pending, setPending] = useState(false);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (pending) return;
     if (!email.endsWith("@iitkgp.ac.in")) {
       setError("Please use your @iitkgp.ac.in email.");
       return;
@@ -36,9 +40,16 @@ export default function SignupPage() {
       setError("Please accept the privacy policy + terms before continuing.");
       return;
     }
+    setError("");
+    setPending(true);
     const r = await signup(email, password);
+    setPending(false);
     if (!r.ok) {
-      setError(r.error ?? "Sign-up failed");
+      const msg = r.error ?? "Sign-up failed";
+      // Show inline (so it's visible even if Toast was missed) AND push to
+      // the global error channel so the brand Toast also surfaces it.
+      setError(msg);
+      useRoomiss.setState({ lastError: msg });
       return;
     }
     // Email confirmation is OFF in Supabase project defaults — user is signed
@@ -119,8 +130,15 @@ export default function SignupPage() {
               {error}
             </div>
           )}
-          <Button type="submit" variant="primary" size="lg" full>
-            Continue
+          <Button
+            type="submit"
+            variant="primary"
+            size="lg"
+            full
+            disabled={pending}
+            style={{ opacity: pending ? 0.7 : 1 }}
+          >
+            {pending ? "Creating account…" : "Continue"}
           </Button>
           <p
             className="text-center mt-2 text-[var(--color-ink-3)]"

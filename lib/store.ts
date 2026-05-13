@@ -156,6 +156,58 @@ const handle = async <T,>(p: Promise<T>) => {
   }
 };
 
+/**
+ * Run an async auth call once; if it rejects (or returns a network-shaped
+ * error) retry once after 500ms. This converts Safari's flaky "Load failed"
+ * fetch rejections into successful logins maybe ~70% of the time without
+ * any other change. Network-shaped errors are detected by string match; we
+ * never retry credential / permission errors with explicit codes.
+ */
+const TRANSIENT_RE = /load failed|failed to fetch|networkerror|network request failed|fetch ?error/i;
+
+async function withTransientRetry<T extends { error?: { message: string } | null }>(
+  fn: () => Promise<T>,
+): Promise<T> {
+  try {
+    const first = await fn();
+    if (first.error && TRANSIENT_RE.test(first.error.message)) {
+      await new Promise((r) => setTimeout(r, 500));
+      return await fn();
+    }
+    return first;
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (TRANSIENT_RE.test(msg)) {
+      await new Promise((r) => setTimeout(r, 500));
+      return await fn();
+    }
+    throw e;
+  }
+}
+
+/**
+ * Map the raw auth-error string to something a human can read. Falls back to
+ * the original message so unmapped errors still surface (just less polished).
+ */
+function humanizeAuthError(raw: string): string {
+  const s = raw.toLowerCase();
+  if (TRANSIENT_RE.test(s))
+    return "We couldn't reach the sign-in server. Check your connection and try again.";
+  if (s.includes("invalid login credentials") || s.includes("invalid_grant"))
+    return "Email or password didn't match.";
+  if (s.includes("email not confirmed"))
+    return "Confirm your email first, then try again.";
+  if (s.includes("user already registered"))
+    return "That email is already registered — try signing in instead.";
+  if (s.includes("password should be") || s.includes("weak_password"))
+    return "Password is too weak — use 8+ characters with a mix.";
+  if (s === "demo_mode_disabled")
+    return "Demo guest sign-in is disabled in this environment.";
+  if (s === "login_failed")
+    return "Sign-in failed. Try again in a moment.";
+  return raw;
+}
+
 export const useRoomiss = create<RoomissState>()(
   persist(
     (set, get) => ({
@@ -173,36 +225,73 @@ export const useRoomiss = create<RoomissState>()(
       // ─── Auth ─────────────────────────────────────────────────
       signup: async (email, password) => {
         set({ loading: true, lastError: null });
-        const res = await handle(supabase.auth.signUp({ email, password }));
-        set({ loading: false });
-        if (!res.ok) { set({ lastError: res.error }); return { ok: false, error: res.error }; }
-        const e = res.data.error;
-        if (e) { set({ lastError: e.message }); return { ok: false, error: e.message }; }
-        return { ok: true };
+        try {
+          const exec = () => supabase.auth.signUp({ email, password });
+          const { data, error } = await withTransientRetry(exec);
+          set({ loading: false });
+          if (error) {
+            const msg = humanizeAuthError(error.message);
+            set({ lastError: msg });
+            return { ok: false, error: msg };
+          }
+          if (!data.user && !data.session) {
+            // Email confirmation enabled in Supabase project → success but no
+            // session yet. Caller should route to a "check your email" state.
+            return { ok: true };
+          }
+          return { ok: true };
+        } catch (e) {
+          // Network-level throw (Safari "Load failed", Chrome "Failed to fetch").
+          // Log the raw error so a developer can triage; surface a friendly string.
+          // eslint-disable-next-line no-console
+          console.error("[auth] signup threw", e);
+          set({ loading: false });
+          const msg = humanizeAuthError(e instanceof Error ? e.message : String(e));
+          set({ lastError: msg });
+          return { ok: false, error: msg };
+        }
       },
 
       login: async (email, password) => {
         set({ loading: true, lastError: null });
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error || !data.user) {
-          set({ loading: false, lastError: error?.message ?? "login_failed" });
-          return { ok: false, error: error?.message };
+        try {
+          // Clear any stale local session before re-attempting. Idempotent and
+          // cheap. Without this, a corrupted token in localStorage can make
+          // signInWithPassword fail in confusing ways on Safari.
+          try { await supabase.auth.signOut({ scope: "local" }); } catch { /* ignore */ }
+
+          const exec = () => supabase.auth.signInWithPassword({ email, password });
+          const { data, error } = await withTransientRetry(exec);
+          if (error || !data.user) {
+            const raw = error?.message ?? "login_failed";
+            const msg = humanizeAuthError(raw);
+            // eslint-disable-next-line no-console
+            console.error("[auth] login returned error", { raw, error });
+            set({ loading: false, lastError: msg });
+            return { ok: false, error: msg };
+          }
+          await get().hydrate();
+          set({ loading: false });
+          return { ok: true };
+        } catch (e) {
+          // eslint-disable-next-line no-console
+          console.error("[auth] login threw", e);
+          const msg = humanizeAuthError(e instanceof Error ? e.message : String(e));
+          set({ loading: false, lastError: msg });
+          return { ok: false, error: msg };
         }
-        await get().hydrate();
-        set({ loading: false });
-        return { ok: true };
       },
 
       loginAsGuestUser: async () => {
-        if (!GUEST_PASSWORD) return { ok: false, error: "demo_mode_disabled" };
+        if (!GUEST_PASSWORD) return { ok: false, error: humanizeAuthError("demo_mode_disabled") };
         return get().login(SEED_EMAIL.guestUser, GUEST_PASSWORD);
       },
       loginAsGuestAdmin: async () => {
-        if (!GUEST_PASSWORD) return { ok: false, error: "demo_mode_disabled" };
+        if (!GUEST_PASSWORD) return { ok: false, error: humanizeAuthError("demo_mode_disabled") };
         return get().login(SEED_EMAIL.guestAdmin, GUEST_PASSWORD);
       },
       loginAsSeedUser: async (email) => {
-        if (!GUEST_PASSWORD) return { ok: false, error: "demo_mode_disabled" };
+        if (!GUEST_PASSWORD) return { ok: false, error: humanizeAuthError("demo_mode_disabled") };
         return get().login(email, GUEST_PASSWORD);
       },
 

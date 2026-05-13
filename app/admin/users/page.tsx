@@ -8,6 +8,7 @@ import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { useRoomiss } from "@/lib/store";
 import { supabase } from "@/lib/supabase/client";
 import { RM } from "@/lib/tokens";
+import { fmtAgo } from "@/lib/format";
 import type { Hall } from "@/lib/types";
 
 export default function AdminUsersPage() {
@@ -188,13 +189,4 @@ function Th({ children }: { children: React.ReactNode }) {
 }
 function Td({ children }: { children: React.ReactNode }) {
   return <td className="px-4 py-2.5">{children}</td>;
-}
-function fmtAgo(iso: string) {
-  const ms = Date.now() - new Date(iso).getTime();
-  const m = Math.round(ms / 60000);
-  if (m < 60) return `${m}m`;
-  const h = Math.round(m / 60);
-  if (h < 24) return `${h}h`;
-  const d = Math.round(h / 24);
-  return `${d}d`;
 }

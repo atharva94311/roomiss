@@ -6,6 +6,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { useRoomiss, selectMyHall } from "@/lib/store";
 import { RM } from "@/lib/tokens";
+import { fmtDaysAgo } from "@/lib/format";
 
 export default function BlockedPage() {
   const router = useRouter();
@@ -52,7 +53,7 @@ export default function BlockedPage() {
                   {p.displayName}
                 </div>
                 <div style={{ fontSize: 12, color: RM.ink3 }}>
-                  Blocked {fmtAgo(b.createdAt)} · they cannot see your profile or message you.
+                  Blocked {fmtDaysAgo(b.createdAt)} · they cannot see your profile or message you.
                 </div>
               </div>
               <Button variant="secondary" size="sm" onClick={() => unblock(b.blockedId)}>
@@ -66,10 +67,3 @@ export default function BlockedPage() {
   );
 }
 
-function fmtAgo(iso: string) {
-  const ms = Date.now() - new Date(iso).getTime();
-  const d = Math.round(ms / 86400000);
-  if (d < 1) return "today";
-  if (d < 7) return `${d}d ago`;
-  return new Date(iso).toLocaleDateString();
-}

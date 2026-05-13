@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { I } from "@/components/ui/Icons";
 import { RM, hallTheme } from "@/lib/tokens";
 import { useRoomiss } from "@/lib/store";
+import { cmpIsoAsc } from "@/lib/format";
 import type { Hall } from "@/lib/types";
 
 const TABS = [
@@ -31,7 +32,7 @@ export function TabBar({ hall = "LBS" }: { hall?: Hall }) {
       const p = s.participants.find((pp) => pp.chatId === ch.id && pp.userId === s.meId);
       const last = s.messages
         .filter((m) => m.chatId === ch.id && m.senderId !== s.meId)
-        .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+        .sort((a, b) => cmpIsoAsc(a.createdAt, b.createdAt))
         .pop();
       if (last && (!p?.lastReadAt || p.lastReadAt < last.createdAt)) c++;
     });

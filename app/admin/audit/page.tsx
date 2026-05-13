@@ -3,11 +3,12 @@
 import { AdminTopBar } from "@/components/admin/TopBar";
 import { useRoomiss } from "@/lib/store";
 import { RM } from "@/lib/tokens";
+import { cmpIsoDesc } from "@/lib/format";
 
 export default function AdminAuditPage() {
   // Audit is already returned newest-first by hydrate; sort defensively.
   const audit = useRoomiss((s) =>
-    [...s.audit].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+    [...s.audit].sort((a, b) => cmpIsoDesc(a.createdAt, b.createdAt)),
   );
   const users = useRoomiss((s) => s.users);
   const profiles = useRoomiss((s) => s.profiles);

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { MobileShell } from "@/components/layout/MobileShell";
 import { useRoomiss } from "@/lib/store";
 import { RM } from "@/lib/tokens";
+import { fmtAgo, cmpIsoDesc } from "@/lib/format";
 import Link from "next/link";
 
 const TYPE_LABELS: Record<string, string> = {
@@ -21,7 +22,7 @@ export default function NotificationsPage() {
   const meId = useRoomiss((s) => s.meId);
   const profiles = useRoomiss((s) => s.profiles);
   const list = useRoomiss((s) =>
-    s.notifications.filter((n) => n.userId === meId).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+    s.notifications.filter((n) => n.userId === meId).sort((a, b) => cmpIsoDesc(a.createdAt, b.createdAt)),
   );
   const markRead = useRoomiss((s) => s.markNotificationRead);
   const markAllRead = useRoomiss((s) => s.markAllNotificationsRead);
@@ -119,13 +120,3 @@ export default function NotificationsPage() {
   );
 }
 
-function fmtAgo(iso: string) {
-  const ms = Date.now() - new Date(iso).getTime();
-  const m = Math.round(ms / 60000);
-  if (m < 1) return "now";
-  if (m < 60) return `${m}m`;
-  const h = Math.round(m / 60);
-  if (h < 24) return `${h}h`;
-  const d = Math.round(h / 24);
-  return `${d}d`;
-}

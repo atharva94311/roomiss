@@ -10,6 +10,7 @@ import { I } from "@/components/ui/Icons";
 import { useRoomiss, selectMyHall } from "@/lib/store";
 import { useTypingPresence } from "@/lib/supabase/presence";
 import { RM, hallTheme } from "@/lib/tokens";
+import { cmpIsoAsc } from "@/lib/format";
 import { ReportModal } from "@/components/modals/ReportModal";
 
 export default function ChatPage({ params }: { params: Promise<{ id: string }> }) {
@@ -69,7 +70,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
   const otherProfiles = otherIds.map((u) => profiles[u]).filter(Boolean);
   const chatMsgs = messages
     .filter((m) => m.chatId === id)
-    .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    .sort((a, b) => cmpIsoAsc(a.createdAt, b.createdAt));
 
   const onSend = () => {
     const v = draft.trim();

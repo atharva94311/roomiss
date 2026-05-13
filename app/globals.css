@@ -48,13 +48,22 @@
     color: white;
   }
 
-  /* Hide scrollbars on horizontal filter rows etc. */
+  /* Hide scrollbars on horizontal filter rows etc.
+   *
+   * `scroll-padding-inline-end` keeps the last chip from sitting flush against
+   * the visible edge after the user scrolls — same idea as `scroll-margin` but
+   * applied to the scroll container itself.
+   * `padding-inline-end` is set via a custom property so individual rows can
+   * override (e.g. set --scroll-row-end-pad: 0 if a row really wants edge bleed).
+   */
   .scroll-row::-webkit-scrollbar {
     display: none;
   }
   .scroll-row {
     -ms-overflow-style: none;
     scrollbar-width: none;
+    scroll-padding-inline-end: 16px;
+    padding-inline-end: var(--scroll-row-end-pad, 16px);
   }
 
   /* Accessibility: visible keyboard focus on every interactive element. Mouse
