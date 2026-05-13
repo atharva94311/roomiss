@@ -41,3 +41,4 @@ testone/
 # Original design-handoff bundle. Kept on disk for reference, not part of the
 # build. Comment this line out if you want it on the remote.
 prototype/
+.vercel
