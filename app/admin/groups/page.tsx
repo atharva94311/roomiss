@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { AdminTopBar } from "@/components/admin/TopBar";
 import { Avatar } from "@/components/ui/Avatar";
 import { HallPill, StatusPill } from "@/components/ui/Pills";
@@ -7,7 +8,10 @@ import { useRoomiss } from "@/lib/store";
 import { RM } from "@/lib/tokens";
 
 export default function AdminGroupsPage() {
-  const groups = useRoomiss((s) => Object.values(s.groups));
+  // Reference-stable selector + derive arrays in useMemo. See
+  // notifications/page.tsx for the infinite-loop story.
+  const groupsRecord = useRoomiss((s) => s.groups);
+  const groups = useMemo(() => Object.values(groupsRecord), [groupsRecord]);
   const profiles = useRoomiss((s) => s.profiles);
 
   return (

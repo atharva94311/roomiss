@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { AdminTopBar } from "@/components/admin/TopBar";
 import { Avatar } from "@/components/ui/Avatar";
 import { HallPill, StatusPill } from "@/components/ui/Pills";
@@ -12,7 +12,15 @@ import { fmtAgo } from "@/lib/format";
 import type { Hall } from "@/lib/types";
 
 export default function AdminUsersPage() {
-  const users = useRoomiss((s) => Object.values(s.users).filter((u) => u.role === "user"));
+  // Selector returns the raw record; the filter happens in useMemo so the
+  // selector's return is reference-stable. See notifications/page.tsx for
+  // the full explanation of why this matters (avoids useSyncExternalStore
+  // infinite loop).
+  const usersRecord = useRoomiss((s) => s.users);
+  const users = useMemo(
+    () => Object.values(usersRecord).filter((u) => u.role === "user"),
+    [usersRecord],
+  );
   const profiles = useRoomiss((s) => s.profiles);
   const [q, setQ] = useState("");
   const [hallFilter, setHallFilter] = useState<Hall | "all">("all");

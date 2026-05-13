@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { MobileShell } from "@/components/layout/MobileShell";
 import { useRoomiss } from "@/lib/store";
@@ -21,12 +22,24 @@ export default function NotificationsPage() {
   const router = useRouter();
   const meId = useRoomiss((s) => s.meId);
   const profiles = useRoomiss((s) => s.profiles);
-  const list = useRoomiss((s) =>
-    s.notifications.filter((n) => n.userId === meId).sort((a, b) => cmpIsoDesc(a.createdAt, b.createdAt)),
-  );
+  // ⚠ Selectors must return STABLE references. Doing `.filter().sort()`
+  // inside the selector creates a new array on every call, which
+  // useSyncExternalStore sees as a state change → re-render → re-call →
+  // infinite loop (Maximum update depth exceeded → error boundary).
+  // Read the raw array with a stable-reference selector, then derive via
+  // useMemo. Same pattern used in /chat and /requests, retrofitted here.
+  const notifications = useRoomiss((s) => s.notifications);
   const markRead = useRoomiss((s) => s.markNotificationRead);
   const markAllRead = useRoomiss((s) => s.markAllNotificationsRead);
-  const unread = list.filter((n) => !n.readAt).length;
+
+  const list = useMemo(
+    () =>
+      notifications
+        .filter((n) => n.userId === meId)
+        .sort((a, b) => cmpIsoDesc(a.createdAt, b.createdAt)),
+    [notifications, meId],
+  );
+  const unread = useMemo(() => list.filter((n) => !n.readAt).length, [list]);
 
   return (
     <MobileShell>
@@ -68,7 +81,12 @@ export default function NotificationsPage() {
           </div>
         )}
         {list.map((n) => {
-          const fromUserId = (n.payload as { from?: string }).from;
+          // `n.payload` is typed as `unknown` but at runtime can be null, an
+          // empty object, or shaped { from: <uuid> }. The previous
+          // `(payload as { from?: string }).from` throws on null because the
+          // `as` cast doesn't change runtime semantics. Guard explicitly.
+          const payload = (n.payload ?? null) as { from?: string } | null;
+          const fromUserId = payload?.from;
           const fromUser = fromUserId ? profiles[fromUserId] : null;
           return (
             <button

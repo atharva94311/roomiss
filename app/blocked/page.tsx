@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { MobileShell } from "@/components/layout/MobileShell";
 import { Avatar } from "@/components/ui/Avatar";
@@ -11,7 +12,12 @@ import { fmtDaysAgo } from "@/lib/format";
 export default function BlockedPage() {
   const router = useRouter();
   const meId = useRoomiss((s) => s.meId);
-  const blocks = useRoomiss((s) => s.blocks.filter((b) => b.blockerId === meId));
+  // Stable-reference selector + derive in useMemo (see notifications/page.tsx).
+  const allBlocks = useRoomiss((s) => s.blocks);
+  const blocks = useMemo(
+    () => allBlocks.filter((b) => b.blockerId === meId),
+    [allBlocks, meId],
+  );
   const profiles = useRoomiss((s) => s.profiles);
   const unblock = useRoomiss((s) => s.unblockUser);
   const hall = useRoomiss(selectMyHall);

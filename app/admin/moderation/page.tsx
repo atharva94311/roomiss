@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { AdminTopBar } from "@/components/admin/TopBar";
 import { Avatar } from "@/components/ui/Avatar";
 import { HallPill, StatusPill } from "@/components/ui/Pills";
@@ -13,7 +13,9 @@ import { fmtAgo } from "@/lib/format";
 type DialogKind = "dismiss" | "warn" | "suspend" | "ban" | null;
 
 export default function AdminModerationPage() {
-  const reports = useRoomiss((s) => Object.values(s.reports));
+  // Stable-reference selector + useMemo derive; see notifications/page.tsx.
+  const reportsRecord = useRoomiss((s) => s.reports);
+  const reports = useMemo(() => Object.values(reportsRecord), [reportsRecord]);
   const profiles = useRoomiss((s) => s.profiles);
   const users = useRoomiss((s) => s.users);
   const messages = useRoomiss((s) => s.messages);
